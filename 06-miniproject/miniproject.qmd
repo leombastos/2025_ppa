@@ -40,7 +40,7 @@ Go on the [USDA NASS QuickStats portal](https://quickstats.nass.usda.gov) and ma
 
 > Our goal is to download data related to your commodity and category for all counties in the state of Georgia for all available years.  
 
-Once you arrive at a final selection, **take a screen shot** of all selected variables in your query. Keep this screen shot (you will need it later).  
+Once you arrive at a final selection, **take a screen shot** of all selected variables in your query. **Email that screenshot to me (lmbastos@uga.edu) so I can confirm you have the correct data to begin your project.**  
 
 
 # Setup  
