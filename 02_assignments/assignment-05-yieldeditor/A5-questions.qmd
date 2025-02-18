@@ -34,7 +34,6 @@ Some tips:
 ## 1. What is the min, mean, max, and cv for the **cleaned** yield data from 2019?  
 
 
-
 ## 2. What is the min, mean, max, and cv for the **cleaned** yield data from 2020?
  
 
