@@ -1,9 +1,13 @@
 ---
-title: "test"
+title: "Satellite mean"
 format: html
 ---
 
 # Learning objectives  
+The goals of this exercise are to:  
+  - Understand about the specifics of Sentinel-2  
+  - Develop an API call for a specific field, dates, and bands  
+  - Deploy the API call and get in return the mean GNVDI over the growing season  
 
 # Introduction  
 We will use imagery collected by the Copernicus satellite mission Sentinel-2, by the European Space Agency (ESA).
@@ -104,15 +108,20 @@ login() #after running this, go to console and hit ENTER/RETURN on your keyboard
 ```
 
 # Starting a process  
+We need to start a process that in the end will be submitted to the cloud server.  
+
 ```{r}
 p 
 ```
 
+This starting process will be further developed below to include different processing step queries.  
 
 # Setting data retrieval parameters  
 Here we need to determine our query parameters, including:  
-
   - **Collection and data product** we want to pull from  
+  - **Spatial extent**  
+  - **Temporal extent**  
+  - **Bands of interest**  
 
 ```{r}
 data 
