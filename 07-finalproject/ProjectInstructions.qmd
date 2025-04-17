@@ -38,7 +38,7 @@ Mr. McCormick provides you with 4 layers of information from his field:
   - Corn yield in 2016  
   - Soybeans yield in 2017  
   - Cotton yield in 2023  
-  - Cotton yield in 2024 (for Beach Field only)  
+  - Cotton yield in 2024 (for 50-ac field only)  
 
 Mr. McCormick also provides you with the following history of his field:  
 
@@ -68,7 +68,7 @@ As a suggestion, you could follow these steps:
 - Download the class GitHub repository (https://github.com/leombastos/2025_ppa). 
 
 
-- Copy the data files from `09-finalproject` and for your **specific field** and paste them inside your `data` folder.  
+- Copy the data files from `07-finalproject` and for your **specific field** and paste them inside your `data` folder.  
 
 - Copy the `ProjectInstructions.qmd` file and paste it inside your `code` folder.  
 
