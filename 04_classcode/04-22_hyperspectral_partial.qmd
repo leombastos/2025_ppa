@@ -1,0 +1,332 @@
+---
+title: "HSI reflectance value extraction"
+format: html
+editor: visual
+date: 4/22/2025
+---
+
+# Introduction
+
+In this exercise we are going to use hyperspectral image (HSI) from a 19-acre farmers' peanut field in Tifton, GA. A total of 21 georeferenced points in the field were plant sampled for aflatoxin.
+
+Aflatoxin is a toxin produced by a fungus that infects peanut pods. Detecting aflatoxin-prone regions in a field is important to avoid mixing infected areas from uninfected areas when harvesting. Peanuts contaminated with aflatoxin recieve a price penalty when being sold, which reduces growers profitability and peanut usability.
+
+The sampled peanut pods were sent to the laboratory for aflatoxin level analysis. We will be using the aflatoxin level (mg/Kg) as ground truth.
+
+On the same day when georeferenced plant samples were collected, we also collected the UAV HSI data with Headwall Nano Hyperspectral sensor from 50m altitude. After collecting the sensor data, we preprocessed the HSI cubes In **Spectral View** software. We performed:
+
+-Radiation correction
+
+-Geographic correction
+
+-Orthomosaic
+
+After getting the orthorectified orthomosaic image **QGIS** is used to transfer the image into .tif file. That is a stack raster with all the bands (272).
+
+After that the field is cropped according to the field boundary to remove any extra vegetation layer.
+
+Now, we will extract the reflectance from the peanut plants and calculate the NDVIs to get the best Bands to explain aflatoxin on this farm for that date.
+
+# Learning Objectives
+
+-   Learn about HSI data
+
+-   See the reflectance variablity in bands
+
+-   Extract the reflectance values (table format) from image layer
+
+-   Play with different combination of Bands to get VIs
+
+-   Identify the best NDVI to predict aflatoxin
+
+# Setup the libraries
+
+```{r}
+
+library(randomForest)
+library(raster)
+library(sf)
+library(dplyr)
+library(terra)
+library(ggplot2)
+library(tidyr)
+library(mapview)
+library(purrr)
+library(stars)
+library(ggthemes)
+
+```
+
+# Reading the Hyperspectral file
+
+```{r Reading the Raw Hyperspectral file}
+
+HIS_raw<- rast()
+
+HIS_raw  # Not using summary function as it takes time
+```
+
+We are interested in only working with the reflectance coming from the peanut plants. The background soil reflectance affect the overall reflectance value. Therefore, we perform Segmentation and separate the soil pixels from the plant pixels. Then perform the further analysis with the plant reflectance only.
+
+Lets explore how the reflectance changes before and after removing the soil pixels.
+
+```{r}
+knitr::include_graphics("../../Images/Reflectance Map.png")
+```
+
+# Read the Segmented HSI after removing the soil pixels from the plant pixels.
+
+```{r HSI after the Segmentation}
+
+HIS_Seg <- rast()
+
+HIS_Seg
+```
+
+After the segmentation the reflectance values in each band decreased a little.
+
+Now, to save our time, we can make the spatial resolution coarser (from cm level to 5m).
+
+```{r HSI after increasing the spatial resolution}
+
+HIS_resampled <- rast()
+HIS_resampled
+```
+
+## Exploring some of the head Bands
+
+```{r}
+plot(HIS_resampled)
+```
+
+# Read the Plots inside the whole field
+
+The whole 19-ac field is divided into plots and the **ground sample** was collected at random basis around the sampling points from the **center of the plot**. This is not an experimental plot and there is no gap between plots but a grid is available in arc GIS. Therefore, a negative 5m buffer is created around each plot and that would create separate plots. The reflectance value we will be working is from that place.
+
+-read the grid shape file\
+-Transfer the coordinate from wgs to UTM\
+-Make a negative 5m buffer
+
+```{r Reading the plots }
+plots <- 
+
+plots
+```
+
+```{r}
+mapview(plots)
+
+```
+
+
+```{r Making the field Plots Workable}
+plot_buffer <- 
+
+plot_buffer
+
+```
+
+```{r}
+mapview(plot_buffer)
+```
+
+TO work with rast, the sf object should be transferred into Spat vector to match with our Spat raster.
+
+```{r}
+plots_buffer_v <- 
+
+plots_buffer_v
+```
+
+# Extraction of Reflectance value as an average of the plot.
+
+For analysis, the reflectance values would be collected as plot average.
+
+```{r Extracting the average reflectance from the plots}
+avg_spectra <-  # NA values in Soil pixel
+avg_spectra
+```
+
+Now that we have reflectance value for all bands, we can start our analysis according to our objective.
+
+We can make multiple vegetation indices with different combinations of red and NIR bands.
+
+# Extract all wavelengths (Band names) under each Band
+
+NDVI = (NIR_Band - Red_Band) / (NIR_Band + Red_Band)
+
+Wavelength starts from Band_1 = 398.401, Band_272= 1002.74, Our Headwall Nano sensor Spectral Resolution= 2.2 nm
+
+Red: \~ 630–690 nm (e.g., **Band_105** \~630.3 to **Band_132**\~690.5) : 27 Bands
+
+NIR: \~ 700–1000 nm (e.g., **Band_137**\~701.6 to **Band_172**\~1002.7) : 137 bands
+
+With that, we can calculate a total of 27 x 137 = **3699** different NDVIs!
+
+# Calculate all NDVI combination
+
+Lets extract the Bands name which falls under Red and NIR Bands for this sensor, and calculate NDVI.
+
+```{r}
+ndvi_all <- avg_spectra %>%
+  # selecting only red and nir bands  
+  
+  # pivoting red bands
+  pivot_longer(cols = Band_105:Band_132, 
+               names_to = "red_band",
+               values_to = "red_value"
+               ) %>%
+  # pivoting nir bands
+ 
+  # calculating ndvi 
+  mutate(ndvi = (nir_value - red_value)/(nir_value + red_value)) %>%
+  
+  # creating new ndvi_band column  
+  
+  # removing unnecessary columns before pivoting  keeping only both band and their value col
+
+  # pivoting wider 
+  pivot_wider(names_from = ndvi_band,
+              values_from = ndvi)
+
+ndvi_all
+```
+
+The next step is to merge the aflatoxin data frame with the NDVI data frame.
+
+For that, we'll need a common column name.
+
+```{r}
+# Give the plot numbers  as a column with the NDVI values
+ndvis <-  
+  
+  #bring the plot column at the beginning
+
+ndvis
+```
+
+Now, bring the target variable (Aflatoxin) in.
+
+```{r}
+#Read the csv file with ground aflatoxin data in each Plot
+
+afl <- read.csv()
+
+afl
+```
+
+Quick wrangling.
+
+```{r}
+afl_clean <- afl %>%
+  rename() # rename the columns
+
+afl_clean
+```
+
+Here, joining the NDVI dataframe with our target variable.
+
+```{r}
+#Joining aflatoxin data with all combined NDVI from the same field by Plots
+
+afl_ndvi <- afl_clean %>%
+  left_join(ndvis) %>%
+  dplyr::select(plot, afl_mgkg, everything())
+  
+afl_ndvi
+
+
+#Incase we want to keep the dataframe for further analysis
+#write.csv(afl_NDVI,"../output/Afl_NDVI_Combo.csv") 
+```
+
+# Compute all the NDVI combinations
+
+Now, as we got all the combination of NDVI, we want to select those Bands which tell us more information. We want to predict our target variable using the NDVI values. Therefore, we chose R sq metric for best NDVI value.
+
+First, making the dataset into long format, so we can have two columns one for target (afl_0809) another for explanatory variable (NDVI).
+
+```{r}
+# Making afl_NDVI data into long format
+
+afl_ndvi_long <- 
+  
+
+afl_ndvi_long
+```
+
+```{r}
+# Running regression for each NDVI
+
+ndvi_reg <- afl_ndvi_long %>%
+  group_by(band) %>%
+  nest() %>%
+  mutate(r2 = map_dbl(data,
+                      ~summary(lm(afl_mgkg ~ ndvi,
+                                  data = .x))$r.squared
+                      )) %>%
+  arrange(desc(r2)) # to get highest r sq in first row
+
+ndvi_reg
+```
+
+Now as we have our highest r sq. we can conclude that from the Bands 127 coming from Red Range and Band 164 coming from NIR range, we could get the best variation in the response variable is explained by those bands. Nonetheless, the R2 is still very small.
+
+\*\* Optional\*\*
+
+Lets explore the individual Red and NIR Bands that are giving the best r sq and also the NDVI plot.
+
+```{r}
+ndvi_best <- HSI_resampled %>%
+            # make the rast into stars
+          # split the bands
+  
+  #make new column as ndvi
+
+ndvi_best
+```
+
+
+Let's check how the best NDVI has spatial effect in the field.
+
+
+```{r}
+ggplot() + #read the plot the ndvi value from best model 
+  geom_stars(data = ,
+             aes(fill = )) +
+  scale_fill_viridis_c(na.value = "transparent") +
+  geom_sf(data = ,         #bringing the plot
+          shape = 21,
+          fill = "red",
+          alpha = .4) +
+  geom_sf_text(data = ,
+               aes()) +          #label the plot numbers
+    labs(title = "NDVI from Band 164 (NIR) and Band 127 (Red)",
+         x = "Longitude", 
+         y = "Latitude", 
+         fill = "NDVI") +
+    theme_map() +
+  theme(legend.position = "right")
+
+ggsave(, 
+       width = 8, 
+       height = 6, 
+       dpi = 300, 
+       bg="white")
+```
+
+# Summary
+
+In this exercise we learnt:
+
+-   HSI Workflow of Headwall HSI
+
+-   Reflectance Extraction of all Bands from Stacked Raster
+
+-   All Narrow Band Extraction within a Range
+
+-   Vegetation Indices Calculation with all combination
+
+-   Best Band Combination selection for VI depending upon certain metric
+
+**Quiz**
